@@ -42,7 +42,7 @@ def create_metadata_files(version_path: str,
         paths = generate_paths(version_path, edition_name)
 
         # Make json folder
-        create_dir(paths['json'])
+        create_dir(paths['metadata'])
         # Get attribute data and zfill count
         df, zfill_count = get_attribute_metadata(paths['csv'])
 
@@ -63,7 +63,7 @@ def create_metadata_files(version_path: str,
                     item_json['attributes'].append({ 'trait_type': attr,
                                                     'value': attr_dict[attr] })
             # Write file to json folder
-            item_json_path = os.path.join(paths['json'],
+            item_json_path = os.path.join(paths['metadata'],
                                           str(idx + 1) + '.json')
             with open(item_json_path, 'w') as f:
                 json.dump(item_json, f)

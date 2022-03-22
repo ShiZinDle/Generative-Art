@@ -2,7 +2,8 @@ import os
 from typing import List
 
 from config import ASSETS_PATH, RARITY_BY_PERCENTAGE
-from utils import choose_version, create_csv, PNG
+from files import rename_files
+from utils import choose_version, create_csv, permission, PNG
 
 
 def get_layers(version_path: str) -> List[str]:
@@ -13,8 +14,13 @@ def create_headers(layers: List[str]) -> List[str]:
     header = []
     ids = []
     for layer in layers:
-        header.extend(['-', layer.title(), 'Rarity Weight', '-'])
-        ids.extend(['id', '0', '-', '-'])
+        try:
+            num, name = layer.split(maxsplit=1)
+        except ValueError:
+            name = layer
+            num = 0
+        header.extend(['-', name.title(), 'Rarity Weight', '-'])
+        ids.extend(['id', num, '-', '-'])
     return [header, ids]
 
 
@@ -57,6 +63,8 @@ def create_table_rows(version_path: str) -> List[str]:
 
 
 def create_rarity_table(version_path: str) -> None:
+    if permission('Rename files'):
+        rename_files(version_path)
     create_csv(create_table_rows(version_path),
                os.path.join(version_path, 'rarity table.csv'))
 

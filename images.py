@@ -1,12 +1,11 @@
 import os
-from sys import argv
 import time
-from typing import Optional
+from typing import Dict, List, Optional
 
 from PIL import Image
 from progressbar import progressbar
 
-from randomizer import randomized
+from randomizer import randomize_check, randomized
 from utils import (choose_dir, choose_edition, choose_version, create_dir,
                    generate_paths, load_json_data, permission)
 
@@ -42,13 +41,14 @@ def get_edition_name_to_print(img_dir: str) -> str:
     return f'{get_edition_name_to_print(dirname)}: {basename}'
 
 
-def generate_images(json_dir_path: str, img_dir: str,
+def generate_images(json_path: str, img_dir: str,
                     zfill_count: int) -> None:
-    all_data = load_json_data(json_dir_path)
+    
+    all_data = load_json_data(json_path)
     if all_data:
         create_dir(img_dir)
         edition_name = get_edition_name_to_print(img_dir)
-        print(f'Generating {edition_name} images')
+        print(f'Generating `{edition_name}` images')
         # Will require this to name final images as 000, 001,...
         for i, data in progressbar(all_data.items()):
             # Set image name
@@ -66,26 +66,45 @@ def images_main(version_path: str, edition_name: Optional[str] = None) -> None:
         edition_name = choose_edition(version_path)
 
     paths = generate_paths(version_path, edition_name)
-    all_data = load_json_data(paths['edition'])
+    all_data = load_json_data(paths['json'])
     zfill_count = len(str(len(all_data.keys())))
 
     if randomized(version_path, paths['images'], edition_name):
         if permission('Create images for all groups'):
             for d in os.listdir(paths['images']):
                 dir_path = os.path.join(paths['images'], d)
-                generate_images(dir_path, dir_path, zfill_count)
+                json_path = os.path.join(dir_path, 'assets.json')
+                generate_images(json_path, dir_path, zfill_count)
         else:
             dir_path = os.path.join(paths['images'],
                                     choose_dir(paths['images'], 'group'))
-            generate_images(dir_path, dir_path, zfill_count)
+            json_path = os.path.join(dir_path, 'assets.json')
+            generate_images(json_path, dir_path, zfill_count)
     else:
-        generate_images(paths['edition'], paths['images'], zfill_count)
+        generate_images(paths['json'], paths['images'], zfill_count)
+
+
+def all_images_exist(version_path: str, edition_name: str,
+                     all_data: Dict[str, List[str]]) -> bool:
+    img_path = generate_paths(version_path, edition_name)['images']
+    data_len = len(all_data)
+    groups = randomize_check(img_path)
+    try:
+        if groups:
+            num_groups = len(groups)
+            if num_groups == 1:
+                return len(os.listdir(os.path.join(img_path,
+                                                groups[0]))) == data_len
+            return ((len(os.listdir(os.path.join(img_path, groups[0])))
+                    * (num_groups - 1)
+                    + len(os.listdir(os.path.join(img_path, groups[-1]))))
+                    == data_len)
+        return len(os.listdir(img_path)) == data_len
+    except FileNotFoundError:
+        return False
+
 
 
 if __name__ == '__main__':
-    try:
-        images_main(argv[1])
-    except (FileNotFoundError, IndexError):
-        images_main(choose_version())
-    finally:
-        print('Task complete!')
+    images_main(choose_version())
+    print('Task complete!')

@@ -117,9 +117,9 @@ def validate_traits(trait_set: List[str]) -> bool:
 
 
 # Generate the image set.
-def generate_asset_data(version_path:str, edition_config: CONFIG_DICT,
-                        count: int) -> List[List[List[str]]]:
-    all_data = []
+def generate_asset_data(
+    version_path:str, edition_config: CONFIG_DICT, count: int,
+    all_data: List[List[List[str]]] = []) -> List[List[List[str]]]:
 
     bar = ProgressBar(max_value=count).start()
     i = 0
@@ -167,43 +167,54 @@ def choose_edition_name(version_path: str) -> str:
 
 
 # Main function. Point of entry
-def create_edition_data(version_path: str) -> str:
+def create_edition_data(version_path: str, edition_name: str = '',
+                        prev_data: List[List[List[str]]] = []) -> str:
+    if not edition_name:
+        edition_name = choose_edition_name(version_path)
+
     print('Checking assets...')
     edition_config = parse_config(version_path)
     print('Assets look great! We are good to go!\n')
 
-    total_combinations = get_total_combinations(edition_config)
-    print(f'You can create a total of {total_combinations} distinct avatars\n')
+    total_combos = get_total_combinations(edition_config)
+    print(f'You can create a total of {total_combos} distinct avatars')
 
-    msg = 'How many avatars would you like to create?'
-    msg += ' Enter a number greater than 0:'
+    msg1 = msg2 = ''
+    if prev_data:
+        existing_amount = len(prev_data)
+        msg1 = f'{existing_amount} avatars already exist\n'
+        msg2 = 'additional '
+        total_combos -= existing_amount
+    msg = f'{msg1}How many {msg2}avatars would you like to create?'
+    msg += f' Enter a number greater than 0 and smaller than {total_combos}:'
     print(msg)
     num_avatars = -1
-    while num_avatars <= 0:
+    while num_avatars <= 0 <= total_combos:
         try:
             num_avatars = int(input())
         except ValueError:
             continue
+    if prev_data:
+        num_avatars += existing_amount
     print()
 
-    edition_name = choose_edition_name(version_path)
-    path = generate_paths(version_path, edition_name)['edition']
-    csv_path = os.path.join(path, 'assets.csv')
+    paths = generate_paths(version_path, edition_name)
 
     print('\nStarting task...')
 
     print('\nCreating directory...')
-    create_dir(path)
+    create_dir(paths['edition'])
 
     print('\nGenerating image data...')
-    all_data = generate_asset_data(version_path, edition_config, num_avatars)
+    all_data = generate_asset_data(version_path, edition_config,
+                                   num_avatars, prev_data)
     csv_data = [data[0] for data in all_data]
     json_data = {i + 1: data for i, data
                  in enumerate([data[1] for data in all_data])}
 
     print('\nCreating trait rarity table...\n')
-    create_csv(create_csv_data(edition_config, csv_data), csv_path)
-    create_assets_json(json_data, path)
+    create_csv(create_csv_data(edition_config, csv_data), paths['csv'])
+    create_assets_json(json_data, paths['json'])
 
     return edition_name
 

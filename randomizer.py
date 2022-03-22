@@ -36,10 +36,10 @@ def move_single_image(img_path: str, group_index: str,
 
 def create_group_json(paths: Dict[str, str],  group_index: str,
                       indices: List[str]) -> None:
-    all_data = load_json_data(paths['edition'])
+    all_data = load_json_data(paths['json'])
     json_data = {k: v for k, v in all_data.items() if k in indices}
     create_assets_json(json_data, os.path.join(
-        paths['images'], f'group {group_index}'))
+        paths['images'], f'group {group_index}', 'assets.json'))
 
 
 def create_group(paths: Dict[str, str], group_index: str, indices: List[str],
@@ -74,7 +74,7 @@ def create_random_groups(version_path: str, edition_name: Optional[str] = None,
 
     if edition_name:
         paths = generate_paths(version_path, edition_name)
-        edition_size = len(load_json_data(paths['edition']))
+        edition_size = len(load_json_data(paths['json']))
         if os.path.exists(paths['images']):
             groups = list(filter(lambda x: x.startswith('group'),
                             os.listdir(paths['images'])))
@@ -91,15 +91,21 @@ def create_random_groups(version_path: str, edition_name: Optional[str] = None,
         print()
 
 
-def randomized(version_path: str, path: str, edition_name: str) -> bool:
+def randomize_check(img_path: str) -> List[str]:
     try:
-        if any(filter(lambda x: x.startswith('group '), os.listdir(path))):
-            return True
+        return list(filter(lambda x: x.startswith('group '),
+                           os.listdir(img_path)))
     except FileNotFoundError:
-        if permission('Create randomized groups'):
-            create_random_groups(version_path, edition_name)
-            return True
-        return False
+        return []
+
+
+def randomized(version_path: str, img_path: str, edition_name: str) -> bool:
+    if randomize_check(img_path):
+        return True
+    if permission('Create randomized groups'):
+        create_random_groups(version_path, edition_name)
+        return True
+    return False
 
 
 if __name__ == '__main__':

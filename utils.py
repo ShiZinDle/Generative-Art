@@ -15,12 +15,15 @@ def generate_paths(version_path: str, edition_name: str) -> Dict[str, str]:
                                 'edition ' + str(edition_name))
     images_path = os.path.join(edition_path, 'images')
     csv_path = os.path.join(edition_path, 'assets.csv')
-    json_path = os.path.join(edition_path, 'json')
+    json_path = os.path.join(edition_path, 'assets.json')
+    metadata_path = os.path.join(edition_path, 'metadata')
+    
 
     return {'edition': edition_path,
             'images': images_path,
             'csv': csv_path,
-            'json': json_path}
+            'json': json_path,
+            'metadata': metadata_path}
 
 
 def create_dir(path: str) -> None:
@@ -101,9 +104,8 @@ def permission(message: str) -> bool:
 
 
 def load_json_data(path: str) -> Dict[str, List[str]]:
-    data_path = os.path.join(path, 'assets.json')
     try:
-        with open(data_path, 'r') as file:
+        with open(path, 'r') as file:
             return json.load(file)
     except FileNotFoundError:
         print('Edition data does not exist.')
@@ -117,7 +119,6 @@ def choose_mode(path: str) -> str:
 
 
 def create_assets_json(json_data: List[List[str]], path: str) -> None:
-    path = os.path.join(path, 'assets.json')
     with open(path, choose_mode(path)) as file:
         json.dump(json_data, file)
 
@@ -158,3 +159,12 @@ def extract_rarity_from_csv(version_path: str) -> CONFIG_DICT:
                 layer['rarity_weights'].insert(0, none_percent)
             percentage.append(layer)
     return sorted(percentage, key=lambda x: x['id'])
+
+
+def extract_prev_data(version_path: str,
+                      edition_name: str) -> List[List[List[str]]]:
+    paths = generate_paths(version_path, edition_name)
+    json_data = [v for v in load_json_data(paths['json']).values()]
+    with open(paths['csv'], 'r') as file:
+        csv_data = [row[1:] for row in list(csv.reader(file))[1:]]
+    return list(zip(csv_data, json_data))

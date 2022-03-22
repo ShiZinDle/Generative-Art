@@ -1,10 +1,10 @@
 import os
 from assets import create_edition_data
-from images import images_main
+from images import all_images_exist, images_main
 from metadata import create_metadata_files
 from randomizer import create_random_groups
 from utils import (choose_edition, choose_version, create_dir,
-                   get_edition_dirs, permission)
+                   extract_prev_data, get_edition_dirs, permission)
 
 def main():
     version_path = choose_version()
@@ -16,6 +16,9 @@ def main():
         edition_name = choose_edition(version_path)
 
     if edition_name:
+        prev_data = extract_prev_data(version_path, edition_name)
+        if all_images_exist(version_path, edition_name, prev_data):
+            create_edition_data(version_path, edition_name, prev_data)
         if permission('Create images'):
             images_main(version_path, edition_name)
             print("Task complete!\n")
